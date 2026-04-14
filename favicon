@@ -1,0 +1,70 @@
+#!/usr/bin/bash
+set -e
+
+OUT_FILE="favicon.ico"
+
+show_info() {
+  echo -e "\e[38;2;217;70;239m▄▄▄▄▄  ▄▄▄  ▄▄ ▄▄ ▄▄  ▄▄▄▄  ▄▄▄  ▄▄  ▄▄\e[0m"
+  echo -e "\e[38;2;217;70;239m██▄▄  ██▀██ ██▄██ ██ ██▀▀▀ ██▀██ ███▄██\e[0m"
+  echo -e "\e[38;2;217;70;239m██    ██▀██  ▀█▀  ██ ▀████ ▀███▀ ██ ▀██\e[0m"
+
+  echo
+  echo "(https://github.com/madLinux7/favicon)"
+  echo
+}
+
+show_usage() {
+  echo -e "\e[4;37mUsage\e[0m:"
+  echo -e "  `basename "$0"`  [--bundle] <file> [outfile]"
+  echo -e "\n\e[4;37mArguments\e[0m:"
+  echo -e "  file:     Image file which will be used to generate favicon"
+  echo -e "  outfile:  Custom favicon output path (default: favicon.ico)"
+  echo -e "\n\e[4;37mOptions\e[0m:"
+  echo -e "  --bundle: Bundle multiple sizes (16,32,48,64,128,256) in one .ico\n"
+}
+
+show_info
+
+BUNDLE=0
+ARGS=()
+for arg in "$@"; do
+  case "$arg" in
+    --bundle) BUNDLE=1 ;;
+    -h|--help) show_usage; exit 0 ;;
+    *) ARGS+=("$arg") ;;
+  esac
+done
+set -- "${ARGS[@]}"
+
+if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+  show_usage
+  exit 1
+fi
+
+if [[ "$#" -eq 2 ]]; then
+  OUT_FILE="$2"
+fi
+
+if [[ "${OUT_FILE,,}" != *.ico ]]; then
+  OUT_FILE="${OUT_FILE}.ico"
+fi
+
+if [[ ! -f "$1" ]]; then
+  echo "Error: file not found: $1" >&2
+  exit 1
+fi
+
+if [[ "$BUNDLE" -eq 1 ]]; then
+  magick -density 384 -background none "$1" \
+    \( -clone 0 -resize 16x16 \) \
+    \( -clone 0 -resize 32x32 \) \
+    \( -clone 0 -resize 48x48 \) \
+    \( -clone 0 -resize 64x64 \) \
+    \( -clone 0 -resize 128x128 \) \
+    \( -clone 0 -resize 256x256 \) \
+    -delete 0 "$OUT_FILE"
+else
+  magick -density 384 -background none "$1" -resize x16 -gravity center -extent 16x16 -colors 256 "$OUT_FILE"
+fi
+
+echo -e "\033[0;32mFavicon $([[ "$BUNDLE" -eq 1 ]] && echo "bundle ")created: $(realpath "$OUT_FILE")\e[0m"
